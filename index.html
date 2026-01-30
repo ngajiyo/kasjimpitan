@@ -4,20 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Kas RT 13</title>
+    <link rel="preconnect" href="https://pfichwnfffjzibusofao.supabase.co">
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         [x-cloak] { display: none !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .sticky-summary {
-            position: sticky;
-            top: 0.75rem;
-            z-index: 40;
-        }
+        .sticky-summary { position: sticky; top: 0.75rem; z-index: 40; }
+        .img-thumbnail { width: 100%; max-height: 200px; object-fit: cover; border-radius: 1.5rem; cursor: pointer; }
     </style>
 </head>
 <body x-data="dashboard()">
@@ -25,10 +24,10 @@
     <div class="max-w-md mx-auto p-4 pb-24">
         <header class="mb-5 flex justify-between items-end px-1">
             <div>
-                <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mb-0.5">Laporan Keuangan Kas Jimpitan</p>
-                <h1 class="text-xl font-[900] text-slate-900 tracking-tight">Dk. Jasem RT 13</h1>
+                <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mb-0.5">Laporan Keuangan</p>
+                <h1 class="text-xl font-[900] text-slate-900 tracking-tight">RT 13 JASEM</h1>
             </div>
-            <button @click="fetchData()" class="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 active:bg-slate-50 transition-transform active:scale-90">
+            <button @click="fetchData()" class="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 active:scale-90 transition-transform">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             </button>
         </header>
@@ -57,15 +56,20 @@
             <div class="flex gap-2 overflow-x-auto no-scrollbar flex-1 py-1">
                 <button @click="setQuickFilter('semua')" :class="activeFilter === 'semua' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 border'" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap">Semua</button>
                 <button @click="setQuickFilter('bulan')" :class="activeFilter === 'bulan' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 border'" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap">Bulan Ini</button>
-                <select x-model="combinedFilter" @change="applyCombinedFilter()" class="py-2.5 pl-3 pr-2 rounded-xl bg-white border border-slate-200 text-[10px] font-black text-slate-600 outline-none appearance-none shadow-sm flex-1">
+                <select x-model="combinedFilter" @change="applyCombinedFilter()" class="py-2.5 pl-3 pr-2 rounded-xl bg-white border border-slate-200 text-[10px] font-black text-slate-600 outline-none appearance-none flex-1 shadow-sm">
                     <option value="custom">Arsip Laporan...</option>
                     <template x-for="opt in archiveOptions" :key="opt.id">
                         <option :value="opt.id" x-text="opt.label"></option>
                     </template>
                 </select>
             </div>
-            <button x-show="activeFilter !== 'semua'" x-transition @click="exportToExcel()" class="bg-emerald-600 text-white p-3 rounded-xl shadow-lg active:scale-90 flex-shrink-0 transition-transform">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <button x-show="activeFilter !== 'semua'" x-transition @click="handleExport()" class="bg-emerald-600 text-white p-3 rounded-xl shadow-lg active:scale-90 transition-all flex-shrink-0">
+                <template x-if="!isExporting">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </template>
+                <template x-if="isExporting">
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                </template>
             </button>
         </div>
 
@@ -97,48 +101,46 @@
     </div>
 
     <div x-show="showDetailModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak x-transition>
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center" @click.away="showDetailModal = false">
-            <div :class="selectedItem.jenis === 'pemasukan' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'" class="inline-block p-4 rounded-full mb-4">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-6 text-center overflow-y-auto max-h-[90vh]" @click.away="showDetailModal = false">
+            <template x-if="selectedItem.nota_url">
+                <div class="mb-4">
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-left px-2">Bukti Lampiran</p>
+                    <a :href="selectedItem.nota_url" target="_blank">
+                        <img :src="selectedItem.nota_url" loading="lazy" class="img-thumbnail border border-slate-100 shadow-sm" onerror="this.src='https://placehold.co/400x250?text=Gambar+Tidak+Tersedia'">
+                    </a>
+                </div>
+            </template>
+            <div :class="selectedItem.jenis === 'pemasukan' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'" class="inline-block p-4 rounded-full mb-3">
                 <svg x-show="selectedItem.jenis === 'pemasukan'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
                 <svg x-show="selectedItem.jenis === 'pengeluaran'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M17 13l-5 5m0 0l-5-5m5 5V6" /></svg>
             </div>
             <h3 class="text-3xl font-[900] text-slate-900" x-text="formatRupiah(selectedItem.jumlah)"></h3>
-            <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1" x-text="selectedItem.kategori"></p>
-            
-            <div class="mt-8 py-6 border-y border-slate-50 text-left space-y-4">
+            <div class="mt-6 py-4 border-y border-slate-50 text-left space-y-4">
                 <div>
                     <p class="text-[10px] font-black text-slate-300 uppercase mb-1">Keterangan</p>
-                    <p class="text-sm text-slate-700 font-bold leading-relaxed" x-text="selectedItem.deskripsi || '-'"></p>
-                </div>
-                <div>
-                    <p class="text-[10px] font-black text-slate-300 uppercase mb-1">Waktu Transaksi</p>
-                    <p class="text-sm text-slate-700 font-bold" x-text="selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'}) : '-'"></p>
+                    <p class="text-sm text-slate-700 font-bold" x-text="selectedItem.deskripsi || '-'"></p>
                 </div>
             </div>
-
-            <div class="mt-8 flex flex-col gap-3">
-                <template x-if="selectedItem.nota_url">
-                    <a :href="selectedItem.nota_url" target="_blank" class="w-full py-4 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase shadow-lg shadow-blue-100">Lihat Lampiran Nota</a>
-                </template>
+            <div class="mt-6 flex flex-col gap-3">
                 <div class="flex gap-3">
                     <button @click="showDetailModal = false" class="flex-1 py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Tutup</button>
                     <button @click="openEditFromDetail()" class="flex-1 py-4 text-xs font-black text-blue-600 bg-blue-50 border border-blue-100 rounded-2xl uppercase">Ubah Data</button>
                 </div>
-                <button @click="deleteData(selectedItem.id)" class="w-full py-4 text-[10px] font-black text-rose-600 bg-rose-50 rounded-2xl uppercase tracking-widest border border-rose-100 mt-2">Hapus Transaksi Ini</button>
+                <button @click="deleteData(selectedItem.id)" class="w-full py-3.5 text-[9px] font-black text-rose-500 bg-rose-50 rounded-2xl uppercase tracking-widest mt-1">Hapus Transaksi</button>
             </div>
         </div>
     </div>
 
     <div x-show="showEditModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak x-transition>
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8" @click.away="showEditModal = false">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 overflow-y-auto max-h-[90vh]" @click.away="showEditModal = false">
             <h3 class="text-xl font-[900] text-slate-900 mb-8 uppercase tracking-tighter text-center">Ubah Transaksi</h3>
             <div class="space-y-5">
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Tanggal Transaksi</label>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Tanggal</label>
                     <input type="date" x-model="editingData.tanggal" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Keterangan / Deskripsi</label>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Deskripsi</label>
                     <textarea x-model="editingData.deskripsi" rows="3" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
                 </div>
                 <div>
@@ -146,8 +148,8 @@
                     <input type="number" x-model="editingData.jumlah" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-lg font-[900] text-blue-600 outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Link Bukti Nota</label>
-                    <input type="text" x-model="editingData.nota_url" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="https://...">
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Link Nota</label>
+                    <input type="text" x-model="editingData.nota_url" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
             </div>
             <div class="flex gap-3 mt-10">
@@ -166,6 +168,7 @@
             return {
                 allData: [], filteredTransactions: [], archiveOptions: [], activeFilter: 'semua', combinedFilter: 'custom', 
                 totals: { saldo: 0, masuk: 0, keluar: 0 }, showDetailModal: false, showEditModal: false, selectedItem: {}, editingData: {},
+                isExporting: false,
                 monthNames: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
                 async init() { await this.fetchData(); },
@@ -213,26 +216,29 @@
                     this.totals = { masuk: m, keluar: k, saldo: m - k };
                 },
                 openDetailModal(item) { this.selectedItem = item; this.showDetailModal = true; },
-                openEditFromDetail() { 
-                    this.editingData = { ...this.selectedItem }; 
-                    this.showDetailModal = false; 
-                    setTimeout(() => { this.showEditModal = true; }, 300); 
-                },
-                
+                openEditFromDetail() { this.editingData = { ...this.selectedItem }; this.showDetailModal = false; setTimeout(() => { this.showEditModal = true; }, 300); },
                 async updateData() {
-                    const { error } = await _supabase.from('kas_rt').update({ 
-                        tanggal: this.editingData.tanggal, // UPDATE TANGGAL SEKARANG AKTIF
-                        deskripsi: this.editingData.deskripsi, 
-                        jumlah: this.editingData.jumlah,
-                        nota_url: this.editingData.nota_url 
-                    }).eq('id', this.editingData.id);
+                    const { error } = await _supabase.from('kas_rt').update({ tanggal: this.editingData.tanggal, deskripsi: this.editingData.deskripsi, jumlah: this.editingData.jumlah, nota_url: this.editingData.nota_url }).eq('id', this.editingData.id);
                     if (!error) { this.showEditModal = false; await this.fetchData(); }
                 },
-
                 async deleteData(id) {
                     if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
                         const { error } = await _supabase.from('kas_rt').delete().eq('id', id);
                         if (!error) { this.showDetailModal = false; await this.fetchData(); }
+                    }
+                },
+
+                // FITUR LOAD ON DEMAND UNTUK XLSX
+                async handleExport() {
+                    this.isExporting = true;
+                    // Cek apakah library XLSX sudah ada di sistem
+                    if (typeof XLSX === 'undefined') {
+                        const script = document.createElement('script');
+                        script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+                        document.head.appendChild(script);
+                        script.onload = () => { this.exportToExcel(); };
+                    } else {
+                        this.exportToExcel();
                     }
                 },
 
@@ -244,6 +250,7 @@
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "Laporan");
                     XLSX.writeFile(wb, `Kas_RT13_Export.xlsx`);
+                    this.isExporting = false;
                 },
                 isDifferentMonth(c, p) { if(!p) return true; const d1=new Date(c), d2=new Date(p); return d1.getMonth()!==d2.getMonth() || d1.getFullYear() !== d2.getFullYear(); },
                 formatMonthYear(s) { if(!s) return ''; const d=new Date(s); return `${this.monthNames[d.getMonth()]} ${d.getFullYear()}`; },
