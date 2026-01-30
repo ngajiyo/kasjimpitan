@@ -1,71 +1,255 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-    <title>Tes Koneksi Final</title>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Kas RT 13</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        [x-cloak] { display: none !important; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .sticky-summary {
+            position: sticky;
+            top: 0.75rem;
+            z-index: 40;
+        }
+    </style>
 </head>
-<body style="font-family: sans-serif; padding: 20px;">
+<body x-data="dashboard()">
 
-    <h2>Status Koneksi: <span id="status">Menghubungkan...</span></h2>
-    <div id="debug" style="color: red; font-size: 12px; margin-bottom: 10px;"></div>
-    
-    <table border="1" id="tabelData" style="width: 100%; border-collapse: collapse; display: none;">
-        <thead id="head"></thead>
-        <tbody id="body"></tbody>
-    </table>
+    <div class="max-w-md mx-auto p-4 pb-24">
+        <header class="mb-5 flex justify-between items-end px-1">
+            <div>
+                <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mb-0.5">Laporan Keuangan Kas Jimpitan</p>
+                <h1 class="text-xl font-[900] text-slate-900 tracking-tight">Dk. Jasem RT 13</h1>
+            </div>
+            <button @click="fetchData()" class="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 active:bg-slate-50 transition-transform active:scale-90">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            </button>
+        </header>
+
+        <div class="sticky-summary">
+            <div class="bg-blue-700 rounded-[2rem] p-5 shadow-xl text-white overflow-hidden relative border border-blue-600">
+                <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full"></div>
+                <div class="relative z-10 flex flex-col items-center">
+                    <p class="text-[9px] opacity-70 uppercase font-black tracking-widest mb-1">Saldo Akhir</p>
+                    <h2 class="text-2xl font-[900] tracking-tight mb-4" x-text="formatRupiah(totals.saldo)"></h2>
+                    <div class="w-full grid grid-cols-2 border-t border-white/10 pt-3 mt-1">
+                        <div class="text-center border-r border-white/10 px-2">
+                            <p class="text-[8px] opacity-60 uppercase font-bold mb-0.5">Total Masuk</p>
+                            <p class="text-sm font-bold text-green-300" x-text="formatRupiah(totals.masuk)"></p>
+                        </div>
+                        <div class="text-center px-2">
+                            <p class="text-[8px] opacity-60 uppercase font-bold mb-0.5">Total Keluar</p>
+                            <p class="text-sm font-bold text-red-300" x-text="formatRupiah(totals.keluar)"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex gap-2 items-center mt-6 mb-6">
+            <div class="flex gap-2 overflow-x-auto no-scrollbar flex-1 py-1">
+                <button @click="setQuickFilter('semua')" :class="activeFilter === 'semua' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 border'" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap">Semua</button>
+                <button @click="setQuickFilter('bulan')" :class="activeFilter === 'bulan' ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-500 border'" class="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all whitespace-nowrap">Bulan Ini</button>
+                <select x-model="combinedFilter" @change="applyCombinedFilter()" class="py-2.5 pl-3 pr-2 rounded-xl bg-white border border-slate-200 text-[10px] font-black text-slate-600 outline-none appearance-none shadow-sm flex-1">
+                    <option value="custom">Arsip Laporan...</option>
+                    <template x-for="opt in archiveOptions" :key="opt.id">
+                        <option :value="opt.id" x-text="opt.label"></option>
+                    </template>
+                </select>
+            </div>
+            <button x-show="activeFilter !== 'semua'" x-transition @click="exportToExcel()" class="bg-emerald-600 text-white p-3 rounded-xl shadow-lg active:scale-90 flex-shrink-0 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            </button>
+        </div>
+
+        <div class="space-y-4">
+            <template x-for="(item, index) in filteredTransactions" :key="item.id">
+                <div>
+                    <template x-if="index === 0 || isDifferentMonth(item.tanggal, filteredTransactions[index-1].tanggal)">
+                        <div class="flex items-center gap-3 my-5 px-1">
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest" x-text="formatMonthYear(item.tanggal)"></span>
+                            <div class="h-[1px] flex-1 bg-slate-200"></div>
+                        </div>
+                    </template>
+                    <div @click="openDetailModal(item)" class="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm flex items-center gap-4 active:scale-[0.98] transition-all cursor-pointer mb-3">
+                        <div class="w-12 h-12 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border shrink-0">
+                            <span class="text-sm font-[800] text-slate-800" x-text="new Date(item.tanggal).getDate()"></span>
+                            <span class="text-[8px] uppercase font-black text-blue-600" x-text="monthNames[new Date(item.tanggal).getMonth()].substring(0,3)"></span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-sm font-bold text-slate-800 truncate" x-text="item.deskripsi"></h4>
+                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider" x-text="item.kategori"></p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <p :class="item.jenis === 'pemasukan' ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-[900]" x-text="(item.jenis === 'pemasukan' ? '+' : '-') + formatRupiah(item.jumlah).replace('Rp', '')"></p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <div x-show="showDetailModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak x-transition>
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center" @click.away="showDetailModal = false">
+            <div :class="selectedItem.jenis === 'pemasukan' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'" class="inline-block p-4 rounded-full mb-4">
+                <svg x-show="selectedItem.jenis === 'pemasukan'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
+                <svg x-show="selectedItem.jenis === 'pengeluaran'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" d="M17 13l-5 5m0 0l-5-5m5 5V6" /></svg>
+            </div>
+            <h3 class="text-3xl font-[900] text-slate-900" x-text="formatRupiah(selectedItem.jumlah)"></h3>
+            <p class="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1" x-text="selectedItem.kategori"></p>
+            
+            <div class="mt-8 py-6 border-y border-slate-50 text-left space-y-4">
+                <div>
+                    <p class="text-[10px] font-black text-slate-300 uppercase mb-1">Keterangan</p>
+                    <p class="text-sm text-slate-700 font-bold leading-relaxed" x-text="selectedItem.deskripsi || '-'"></p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-slate-300 uppercase mb-1">Waktu Transaksi</p>
+                    <p class="text-sm text-slate-700 font-bold" x-text="selectedItem.tanggal ? new Date(selectedItem.tanggal).toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'}) : '-'"></p>
+                </div>
+            </div>
+
+            <div class="mt-8 flex flex-col gap-3">
+                <template x-if="selectedItem.nota_url">
+                    <a :href="selectedItem.nota_url" target="_blank" class="w-full py-4 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase shadow-lg shadow-blue-100">Lihat Lampiran Nota</a>
+                </template>
+                <div class="flex gap-3">
+                    <button @click="showDetailModal = false" class="flex-1 py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Tutup</button>
+                    <button @click="openEditFromDetail()" class="flex-1 py-4 text-xs font-black text-blue-600 bg-blue-50 border border-blue-100 rounded-2xl uppercase">Ubah Data</button>
+                </div>
+                <button @click="deleteData(selectedItem.id)" class="w-full py-4 text-[10px] font-black text-rose-600 bg-rose-50 rounded-2xl uppercase tracking-widest border border-rose-100 mt-2">Hapus Transaksi Ini</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showEditModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak x-transition>
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8" @click.away="showEditModal = false">
+            <h3 class="text-xl font-[900] text-slate-900 mb-8 uppercase tracking-tighter text-center">Ubah Transaksi</h3>
+            <div class="space-y-5">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Tanggal Transaksi</label>
+                    <input type="date" x-model="editingData.tanggal" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Keterangan / Deskripsi</label>
+                    <textarea x-model="editingData.deskripsi" rows="3" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Jumlah (Rp)</label>
+                    <input type="number" x-model="editingData.jumlah" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-lg font-[900] text-blue-600 outline-none focus:ring-2 focus:ring-blue-500 transition">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Link Bukti Nota</label>
+                    <input type="text" x-model="editingData.nota_url" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="https://...">
+                </div>
+            </div>
+            <div class="flex gap-3 mt-10">
+                <button @click="showEditModal = false" class="flex-1 py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Batal</button>
+                <button @click="updateData()" class="flex-1 py-4 text-xs font-black text-white bg-slate-900 rounded-2xl uppercase shadow-lg">Simpan</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // GANTI URL INI DENGAN URL WEB APP TERBARU ANDA
-        const URL = 'https://script.google.com/macros/s/AKfycbztFaASjMFuynqh4PnNGhHAMV5CDddVPjzoxM7jtxNv91jmldyBh-PCdzb1wVZ0z1dc/exec';
+        const SUPABASE_URL = 'https://pfichwnfffjzibusofao.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmaWNod25mZmZqemlidXNvZmFvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4MzE0NjIsImV4cCI6MjA4MTQwNzQ2Mn0.Hp9nGeQEiNXnKoPkeSY2Qoey0HP2Er0E4TbwBe_y64c';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        async function tes() {
-            const status = document.getElementById('status');
-            const debug = document.getElementById('debug');
-            
-            try {
-                const response = await fetch(URL, {
-                    method: 'GET',
-                    mode: 'cors',
-                    redirect: 'follow'
-                });
+        function dashboard() {
+            return {
+                allData: [], filteredTransactions: [], archiveOptions: [], activeFilter: 'semua', combinedFilter: 'custom', 
+                totals: { saldo: 0, masuk: 0, keluar: 0 }, showDetailModal: false, showEditModal: false, selectedItem: {}, editingData: {},
+                monthNames: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
-                if (!response.ok) throw new Error('HTTP Error: ' + response.status);
-
-                const data = await response.json();
+                async init() { await this.fetchData(); },
+                async fetchData() {
+                    const { data } = await _supabase.from('kas_rt').select('*').order('tanggal', { ascending: false });
+                    this.allData = data || [];
+                    this.generateArchiveOptions();
+                    this.setQuickFilter(this.activeFilter === 'archive' ? 'archive' : this.activeFilter);
+                },
+                generateArchiveOptions() {
+                    const groups = new Set();
+                    this.allData.forEach(i => { const d = new Date(i.tanggal); groups.add(`${d.getMonth()}-${d.getFullYear()}`); });
+                    this.archiveOptions = Array.from(groups).map(g => {
+                        const [m, y] = g.split('-');
+                        return { id: g, label: `${this.monthNames[m]} ${y}`, month: m, year: y };
+                    }).sort((a,b) => b.year - a.year || b.month - a.month);
+                },
+                setQuickFilter(type) {
+                    this.activeFilter = type;
+                    if(type === 'bulan') {
+                        const now = new Date();
+                        this.filteredTransactions = this.allData.filter(i => { 
+                            const d = new Date(i.tanggal); 
+                            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
+                        });
+                    } else if (type === 'semua') {
+                        this.combinedFilter = 'custom';
+                        this.filteredTransactions = [...this.allData];
+                    }
+                    this.calculate();
+                },
+                applyCombinedFilter() {
+                    if (this.combinedFilter === 'custom') return;
+                    this.activeFilter = 'archive';
+                    const [m, y] = this.combinedFilter.split('-');
+                    this.filteredTransactions = this.allData.filter(i => { 
+                        const d = new Date(i.tanggal); 
+                        return d.getMonth() == m && d.getFullYear() == y; 
+                    });
+                    this.calculate();
+                },
+                calculate() {
+                    const m = this.filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((a, b) => a + Number(b.jumlah), 0);
+                    const k = this.filteredTransactions.filter(t => t.jenis === 'pengeluaran').reduce((a, b) => a + Number(b.jumlah), 0);
+                    this.totals = { masuk: m, keluar: k, saldo: m - k };
+                },
+                openDetailModal(item) { this.selectedItem = item; this.showDetailModal = true; },
+                openEditFromDetail() { 
+                    this.editingData = { ...this.selectedItem }; 
+                    this.showDetailModal = false; 
+                    setTimeout(() => { this.showEditModal = true; }, 300); 
+                },
                 
-                status.innerText = "BERHASIL!";
-                status.style.color = "green";
-                console.log(data);
-                
-                tampilkanData(data);
+                async updateData() {
+                    const { error } = await _supabase.from('kas_rt').update({ 
+                        tanggal: this.editingData.tanggal, // UPDATE TANGGAL SEKARANG AKTIF
+                        deskripsi: this.editingData.deskripsi, 
+                        jumlah: this.editingData.jumlah,
+                        nota_url: this.editingData.nota_url 
+                    }).eq('id', this.editingData.id);
+                    if (!error) { this.showEditModal = false; await this.fetchData(); }
+                },
 
-            } catch (err) {
-                status.innerText = "GAGAL!";
-                status.style.color = "red";
-                debug.innerText = "Error: " + err.message + " (Cek Console F12 untuk detail)";
-                console.error(err);
+                async deleteData(id) {
+                    if (confirm('Apakah Anda yakin ingin menghapus transaksi ini?')) {
+                        const { error } = await _supabase.from('kas_rt').delete().eq('id', id);
+                        if (!error) { this.showDetailModal = false; await this.fetchData(); }
+                    }
+                },
+
+                exportToExcel() {
+                    const header = [["LAPORAN KAS JIMPITAN DK. JASEM RT 13"], ["Periode: " + (this.activeFilter === 'bulan' ? this.formatMonthYear(new Date()) : (this.activeFilter === 'archive' ? this.formatMonthYear(this.filteredTransactions[0]?.tanggal) : 'Semua Periode'))], [""], ["Tanggal", "Keterangan", "Kategori", "Jenis", "Jumlah (Rp)"]];
+                    const rows = this.filteredTransactions.map(i => [new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, i.kategori, i.jenis.charAt(0).toUpperCase() + i.jenis.slice(1).toLowerCase(), i.jumlah]);
+                    rows.push(["", "", "", "Total Masuk", this.totals.masuk], ["", "", "", "Total Keluar", this.totals.keluar], ["", "", "", "SALDO AKHIR", this.totals.saldo]);
+                    const ws = XLSX.utils.aoa_to_sheet([...header, ...rows]);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+                    XLSX.writeFile(wb, `Kas_RT13_Export.xlsx`);
+                },
+                isDifferentMonth(c, p) { if(!p) return true; const d1=new Date(c), d2=new Date(p); return d1.getMonth()!==d2.getMonth() || d1.getFullYear() !== d2.getFullYear(); },
+                formatMonthYear(s) { if(!s) return ''; const d=new Date(s); return `${this.monthNames[d.getMonth()]} ${d.getFullYear()}`; },
+                formatRupiah(v) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0); }
             }
         }
-
-        function tampilkanData(data) {
-            if (data.length === 0) return;
-            const tabel = document.getElementById('tabelData');
-            tabel.style.display = "table";
-            
-            const head = document.getElementById('head');
-            const body = document.getElementById('body');
-            
-            // Buat Header
-            let cols = Object.keys(data[0]);
-            head.innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
-            
-            // Buat Baris
-            body.innerHTML = data.map(row => 
-                `<tr>${cols.map(c => `<td>${row[c]}</td>`).join('')}</tr>`
-            ).join('');
-        }
-
-        tes();
     </script>
 </body>
 </html>
