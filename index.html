@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Kas RT 13</title>
     <link rel="preconnect" href="https://pfichwnfffjzibusofao.supabase.co">
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
-    
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
@@ -69,11 +69,10 @@
             </div>
             
             <div class="flex gap-1.5" x-show="activeFilter !== 'semua'" x-transition>
-                <button @click="exportToExcel()" class="bg-emerald-600 text-white p-3 rounded-xl shadow-lg active:scale-90 transition-all flex-shrink-0">
+                <button @click="exportToExcel()" class="bg-emerald-600 text-white p-3 rounded-xl shadow-lg active:scale-90 transition-all">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 </button>
-
-                <button @click="exportToPDF()" class="bg-rose-600 text-white p-3 rounded-xl shadow-lg active:scale-90 transition-all flex-shrink-0">
+                <button @click="exportToPDF()" class="bg-rose-600 text-white p-3 rounded-xl shadow-lg active:scale-90 transition-all">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 15h6" /></svg>
                 </button>
             </div>
@@ -81,10 +80,8 @@
 
         <div class="mb-6 px-1">
             <div class="relative group">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                 </span>
                 <input type="text" x-model="searchQuery" @input="applySearch()" placeholder="Cari transaksi..." class="w-full bg-white border border-slate-200 py-3.5 pl-11 pr-4 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm">
             </div>
@@ -92,25 +89,17 @@
 
         <div class="space-y-4">
             <template x-for="(item, index) in displayTransactions" :key="item.id">
-                <div>
-                    <template x-if="index === 0 || isDifferentMonth(item.tanggal, displayTransactions[index-1].tanggal)">
-                        <div class="flex items-center gap-3 my-5 px-1">
-                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest" x-text="formatMonthYear(item.tanggal)"></span>
-                            <div class="h-[1px] flex-1 bg-slate-200"></div>
-                        </div>
-                    </template>
-                    <div @click="openDetailModal(item)" class="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm flex items-center gap-4 active:scale-[0.98] transition-all cursor-pointer mb-3">
-                        <div class="w-12 h-12 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border shrink-0">
-                            <span class="text-sm font-[800] text-slate-800" x-text="new Date(item.tanggal).getDate()"></span>
-                            <span class="text-[8px] uppercase font-black text-blue-600" x-text="monthNames[new Date(item.tanggal).getMonth()].substring(0,3)"></span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-bold text-slate-800 truncate" x-text="item.deskripsi"></h4>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase tracking-wider" x-text="item.kategori"></p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p :class="item.jenis === 'pemasukan' ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-[900]" x-text="(item.jenis === 'pemasukan' ? '+' : '-') + formatRupiah(item.jumlah).replace('Rp', '')"></p>
-                        </div>
+                <div @click="openDetailModal(item)" class="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm flex items-center gap-4 active:scale-[0.98] cursor-pointer">
+                    <div class="w-12 h-12 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border shrink-0 text-center">
+                        <span class="text-sm font-[800]" x-text="new Date(item.tanggal).getDate()"></span>
+                        <span class="text-[8px] uppercase font-black text-blue-600" x-text="monthNames[new Date(item.tanggal).getMonth()].substring(0,3)"></span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-sm font-bold text-slate-800 truncate" x-text="item.deskripsi"></h4>
+                        <p class="text-[9px] text-slate-400 font-bold uppercase" x-text="item.kategori"></p>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p :class="item.jenis === 'pemasukan' ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-[900]" x-text="(item.jenis === 'pemasukan' ? '+' : '-') + formatRupiah(item.jumlah).replace('Rp', '')"></p>
                     </div>
                 </div>
             </template>
@@ -120,13 +109,41 @@
     <div x-show="showDetailModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak x-transition>
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-6 text-center overflow-y-auto max-h-[90vh]" @click.away="showDetailModal = false">
             <template x-if="selectedItem.nota_url">
-                <div class="mb-4">
-                    <img :src="selectedItem.nota_url" class="img-thumbnail border border-slate-100 shadow-sm">
-                </div>
+                <img :src="selectedItem.nota_url" class="img-thumbnail border border-slate-100 shadow-sm mb-4">
             </template>
+            <div :class="selectedItem.jenis === 'pemasukan' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'" class="inline-block p-4 rounded-full mb-3">
+                <svg x-show="selectedItem.jenis === 'pemasukan'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
+                <svg x-show="selectedItem.jenis === 'pengeluaran'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M17 13l-5 5m0 0l-5-5m5 5V6" /></svg>
+            </div>
             <h3 class="text-3xl font-[900] text-slate-900" x-text="formatRupiah(selectedItem.jumlah)"></h3>
-            <p class="mt-4 text-sm text-slate-600" x-text="selectedItem.deskripsi"></p>
-            <button @click="showDetailModal = false" class="mt-6 w-full py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Tutup</button>
+            <p class="mt-4 text-sm text-slate-600 font-bold" x-text="selectedItem.deskripsi"></p>
+            <div class="mt-6 flex flex-col gap-3">
+                <div class="flex gap-2">
+                    <button @click="showDetailModal = false" class="flex-1 py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Tutup</button>
+                    <button @click="openEditFromDetail()" class="flex-1 py-4 text-xs font-black text-blue-600 bg-blue-50 border border-blue-100 rounded-2xl uppercase">Ubah Data</button>
+                </div>
+                <button @click="deleteData(selectedItem.id)" class="w-full py-3.5 text-[9px] font-black text-rose-500 bg-rose-50 rounded-2xl uppercase">Hapus Transaksi</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="showEditModal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak x-transition>
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl" @click.away="showEditModal = false">
+            <h3 class="text-xl font-black text-center mb-6 text-slate-800">UBAH DATA</h3>
+            <div class="space-y-4 text-left">
+                <div><label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Tanggal</label>
+                <input type="date" x-model="editingData.tanggal" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none ring-1 ring-slate-100"></div>
+                <div><label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Deskripsi</label>
+                <textarea x-model="editingData.deskripsi" rows="3" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none ring-1 ring-slate-100 resize-none"></textarea></div>
+                <div><label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Jumlah (Rp)</label>
+                <input type="number" x-model="editingData.jumlah" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-black text-blue-600 outline-none ring-1 ring-slate-100 text-xl"></div>
+                <div><label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Bukti Baru</label>
+                <input type="file" @change="uploadImage($event)" class="text-[10px] font-bold"><p x-show="isUploading" class="text-blue-500 text-[10px] animate-pulse font-black mt-1 uppercase">Mengunggah...</p></div>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button @click="showEditModal = false" class="flex-1 py-4 font-black text-xs text-slate-400 uppercase">Batal</button>
+                <button @click="updateData()" :disabled="isUploading" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Simpan</button>
+            </div>
         </div>
     </div>
 
@@ -139,7 +156,9 @@
             return {
                 allData: [], filteredTransactions: [], displayTransactions: [], searchQuery: '', 
                 archiveOptions: [], activeFilter: 'semua', combinedFilter: 'custom', 
-                totals: { saldo: 0, masuk: 0, keluar: 0 }, showDetailModal: false, selectedItem: {},
+                totals: { saldo: 0, masuk: 0, keluar: 0 }, 
+                showDetailModal: false, showEditModal: false, isUploading: false,
+                selectedItem: {}, editingData: {},
                 monthNames: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
                 async init() { await this.fetchData(); },
@@ -162,12 +181,9 @@
                     if(type === 'bulan') {
                         const now = new Date();
                         this.filteredTransactions = this.allData.filter(i => { 
-                            const d = new Date(i.tanggal); 
-                            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
+                            const d = new Date(i.tanggal); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
                         });
-                    } else {
-                        this.filteredTransactions = [...this.allData];
-                    }
+                    } else { this.filteredTransactions = [...this.allData]; }
                     this.calculate(); this.applySearch();
                 },
                 applyCombinedFilter() {
@@ -181,7 +197,9 @@
                 },
                 applySearch() {
                     const q = this.searchQuery.toLowerCase();
-                    this.displayTransactions = this.filteredTransactions.filter(i => i.deskripsi.toLowerCase().includes(q));
+                    this.displayTransactions = this.filteredTransactions.filter(i => 
+                        i.deskripsi.toLowerCase().includes(q) || i.kategori.toLowerCase().includes(q)
+                    );
                 },
                 calculate() {
                     const m = this.filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((a, b) => a + Number(b.jumlah), 0);
@@ -189,110 +207,112 @@
                     this.totals = { masuk: m, keluar: k, saldo: m - k };
                 },
                 openDetailModal(item) { this.selectedItem = item; this.showDetailModal = true; },
-                
-                // --- FUNGSI EXPORT ---
-                exportToExcel() {
-    // 1. Tentukan Judul dan Periode
-    const judul = "LAPORAN KEUANGAN KAS JIMPITAN RT 13";
-    const periode = this.activeFilter === 'semua' ? 'Semua Periode' : 
-                   (this.activeFilter === 'bulan' ? this.formatMonthYear(new Date()) : 
-                   this.formatMonthYear(this.filteredTransactions[0]?.tanggal));
+                openEditFromDetail() { this.editingData = { ...this.selectedItem }; this.showDetailModal = false; setTimeout(() => { this.showEditModal = true; }, 300); },
 
-    // 2. Siapkan array data diawali dengan baris kosong (untuk tempat Header nanti)
-    const rows = [
-        [judul],
-        [`Periode: ${periode}`],
-        [], // Baris kosong
-        ['Tanggal', 'Keterangan', 'Kategori', 'Jenis', 'Jumlah'] // Header Tabel
-    ];
+                async uploadImage(event) {
+                    const file = event.target.files[0]; if (!file) return;
+                    this.isUploading = true;
+                    const fileName = `${Date.now()}.${file.name.split('.').pop()}`;
+                    const { data, error } = await _supabase.storage.from('upload').upload(`img/${fileName}`, file);
+                    if (!error) {
+                        const { data: { publicUrl } } = _supabase.storage.from('upload').getPublicUrl(`img/${fileName}`);
+                        this.editingData.nota_url = publicUrl;
+                    }
+                    this.isUploading = false;
+                },
+                async updateData() {
+                    const { error } = await _supabase.from('kas_rt').update({ 
+                        tanggal: this.editingData.tanggal, deskripsi: this.editingData.deskripsi, 
+                        jumlah: this.editingData.jumlah, nota_url: this.editingData.nota_url 
+                    }).eq('id', this.editingData.id);
+                    if (!error) { this.showEditModal = false; await this.fetchData(); }
+                },
+                async deleteData(id) {
+                    if (confirm('Hapus transaksi?')) {
+                        const { error } = await _supabase.from('kas_rt').delete().eq('id', id);
+                        if (!error) { this.showDetailModal = false; await this.fetchData(); }
+                    }
+                },
 
-    // 3. Masukkan data transaksi
-    this.displayTransactions.forEach(i => {
-        rows.push([
-            new Date(i.tanggal).toLocaleDateString('id-ID'),
-            i.deskripsi,
-            i.kategori,
-            i.jenis.charAt(0).toUpperCase() + i.jenis.slice(1).toLowerCase(),
-            Number(i.jumlah)
-        ]);
-    });
+                // Helper untuk mendapatkan label periode yang konsisten
+                getPeriodeLabel() {
+                    if (this.activeFilter === 'semua') return "Semua Riwayat";
+                    if (this.activeFilter === 'bulan') return this.formatMonthYear(new Date());
+                    const opt = this.archiveOptions.find(o => o.id === this.combinedFilter);
+                    return opt ? opt.label : "Laporan Bulanan";
+                },
 
-    // 4. Tambahkan baris total
-    rows.push([]);
-    rows.push(['', '', '', 'Total Pemasukan', this.totals.masuk]);
-    rows.push(['', '', '', 'Total Pengeluaran', this.totals.keluar]);
-
-    // 5. Buat Worksheet
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-
-    // 6. Atur Lebar Kolom
-    ws['!cols'] = [
-        { wch: 15 }, // Tanggal
-        { wch: 45 }, // Keterangan
-        { wch: 20 }, // Kategori
-        { wch: 20 }, // Jenis
-        { wch: 20 }  // Jumlah
-    ];
-
-    // 7. Buat Workbook dan Simpan
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Laporan Kas");
-    XLSX.writeFile(wb, `Laporan_Kas_RT13_${periode.replace(' ', '_')}.xlsx`);
-},
-
+                // --- EXPORT PDF (Urutan Tanggal Muda ke Tua) ---
                 exportToPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const periode = this.activeFilter === 'bulan' ? this.formatMonthYear(new Date()) : (this.activeFilter === 'archive' ? this.formatMonthYear(this.filteredTransactions[0]?.tanggal) : 'Laporan');
-    
-    doc.setFontSize(14);
-    doc.text("LAPORAN KAS RT 13", 14, 15);
-    doc.setFontSize(10);
-    doc.text("Periode: " + periode, 14, 22);
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const labelPeriode = this.getPeriodeLabel();
 
-    const tableData = this.displayTransactions.map(i => [
-        new Date(i.tanggal).toLocaleDateString('id-ID'),
-        i.deskripsi,
-        i.kategori,
-        // Mengubah jenis menjadi Sentence case (Pemasukan / Pengeluaran)
-        i.jenis.charAt(0).toUpperCase() + i.jenis.slice(1).toLowerCase(),
-        this.formatRupiah(i.jumlah)
-    ]);
+                    doc.setFontSize(14); doc.text("LAPORAN KEUANGAN KAS RT 13", 14, 15);
+                    doc.setFontSize(10); doc.text("Periode: " + labelPeriode, 14, 22);
+                    
+                    // .slice() untuk copy array, .sort() untuk urutan ASCENDING (Tua ke Muda)
+                    const sortedData = [...this.displayTransactions].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
 
-    doc.autoTable({
-        startY: 30,
-        head: [['Tanggal', 'Keterangan', 'Kategori', 'Jenis', 'Jumlah']],
-        body: tableData,
-        foot: [
-            ['', '', '', 'Total pemasukan', this.formatRupiah(this.totals.masuk)],
-            ['', '', '', 'Total pengeluaran', this.formatRupiah(this.totals.keluar)]
-        ],
-        theme: 'grid',
-        columnStyles: {
-            0: { cellWidth: 25 },
-            1: { cellWidth: 'auto' },
-            2: { cellWidth: 25 },
-            3: { cellWidth: 40 }, 
-            4: { cellWidth: 40, halign: 'right' }
-        },
-        styles: { fontSize: 9 },
-        footStyles: { 
-            fontSize: 10.5, 
-            fillColor: [241, 245, 249], 
-            textColor: [0, 0, 0], 
-            fontStyle: 'normal' 
-        },
-        didParseCell: function (data) {
-            if (data.section === 'foot' && data.column.index === 4) {
-                data.cell.styles.halign = 'right';
-            }
-        }
-    });
+                    const tableData = sortedData.map(i => [
+                        new Date(i.tanggal).toLocaleDateString('id-ID'), 
+                        i.deskripsi, 
+                        i.kategori, 
+                        i.jenis.toUpperCase(), 
+                        this.formatRupiah(i.jumlah)
+                    ]);
 
-    doc.save(`Laporan_RT13_${periode.replace(' ', '_')}.pdf`);
-},
+                    doc.autoTable({
+                        startY: 30, 
+                        head: [['Tanggal', 'Keterangan', 'Kategori', 'Jenis', 'Jumlah']], 
+                        body: tableData,
+                        foot: [
+                            ['', '', '', 'Total Masuk', this.formatRupiah(this.totals.masuk)],
+                            ['', '', '', 'Total Keluar', this.formatRupiah(this.totals.keluar)],
+                        ],
+                        columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 'auto' }, 2: { cellWidth: 25 }, 3: { cellWidth: 25 }, 4: { cellWidth: 45, halign: 'right' } },
+                        styles: { fontSize: 8 }, 
+                        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }, 
+                        theme: 'grid'
+                    });
+                    doc.save(`Laporan_RT13_${labelPeriode}.pdf`);
+                },
 
-                isDifferentMonth(c, p) { if(!p) return true; const d1=new Date(c), d2=new Date(p); return d1.getMonth()!==d2.getMonth(); },
+                // --- EXPORT EXCEL (Urutan Tanggal Muda ke Tua) ---
+                exportToExcel() {
+                    const labelPeriode = this.getPeriodeLabel();
+                    const rows = [
+                        ["LAPORAN KEUANGAN KAS RT 13"],
+                        ["Periode: " + labelPeriode],
+                        [],
+                        ['Tanggal', 'Keterangan', 'Kategori', 'Jenis', 'Jumlah']
+                    ];
+
+                    // .slice() untuk copy array, .sort() untuk urutan ASCENDING (Tua ke Muda)
+                    const sortedData = [...this.displayTransactions].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+
+                    sortedData.forEach(i => {
+                        rows.push([
+                            new Date(i.tanggal).toLocaleDateString('id-ID'), 
+                            i.deskripsi, 
+                            i.kategori, 
+                            i.jenis.toUpperCase(), 
+                            Number(i.jumlah)
+                        ]);
+                    });
+
+                    rows.push([]);
+                    rows.push(['', '', '', 'TOTAL MASUK', this.totals.masuk]);
+                    rows.push(['', '', '', 'TOTAL KELUAR', this.totals.keluar]);
+
+                    const ws = XLSX.utils.aoa_to_sheet(rows);
+                    ws['!cols'] = [ { wch: 15 }, { wch: 40 }, { wch: 20 }, { wch: 15 }, { wch: 20 } ];
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Laporan");
+                    XLSX.writeFile(wb, `Laporan_RT13_${labelPeriode}.xlsx`);
+                },
+
                 formatMonthYear(s) { const d=new Date(s); return `${this.monthNames[d.getMonth()]} ${d.getFullYear()}`; },
                 formatRupiah(v) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0); }
             }
