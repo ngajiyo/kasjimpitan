@@ -148,13 +148,17 @@
                     <input type="number" x-model="editingData.jumlah" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-lg font-[900] text-blue-600 outline-none focus:ring-2 focus:ring-blue-500 transition">
                 </div>
                 <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Link Nota</label>
-                    <input type="text" x-model="editingData.nota_url" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 text-xs font-medium outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-2 mb-1 block">Upload Nota</label>
+                    <div class="flex flex-col gap-2">
+                        <input type="file" @change="uploadImage($event)" accept="image/*" class="w-full p-3 rounded-2xl border border-dashed border-slate-300 bg-white text-[10px] font-bold outline-none">
+                        <p x-show="isUploading" class="text-[9px] text-blue-500 font-bold animate-pulse px-2">SEDANG MENGUNGGAH GAMBAR...</p>
+                        <input type="text" x-model="editingData.nota_url" class="w-full p-4 rounded-2xl border border-slate-100 bg-slate-200 text-xs font-medium outline-none text-slate-500" readonly placeholder="Link akan muncul otomatis">
+                    </div>
                 </div>
             </div>
             <div class="flex gap-3 mt-10">
                 <button @click="showEditModal = false" class="flex-1 py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Batal</button>
-                <button @click="updateData()" class="flex-1 py-4 text-xs font-black text-white bg-slate-900 rounded-2xl uppercase shadow-lg">Simpan</button>
+                <button @click="updateData()" :disabled="isUploading" :class="isUploading ? 'opacity-50 cursor-not-allowed' : ''" class="flex-1 py-4 text-xs font-black text-white bg-slate-900 rounded-2xl uppercase shadow-lg">Simpan</button>
             </div>
         </div>
     </div>
@@ -168,7 +172,7 @@
             return {
                 allData: [], filteredTransactions: [], archiveOptions: [], activeFilter: 'semua', combinedFilter: 'custom', 
                 totals: { saldo: 0, masuk: 0, keluar: 0 }, showDetailModal: false, showEditModal: false, selectedItem: {}, editingData: {},
-                isExporting: false,
+                isExporting: false, isUploading: false,
                 monthNames: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
                 async init() { await this.fetchData(); },
@@ -217,8 +221,33 @@
                 },
                 openDetailModal(item) { this.selectedItem = item; this.showDetailModal = true; },
                 openEditFromDetail() { this.editingData = { ...this.selectedItem }; this.showDetailModal = false; setTimeout(() => { this.showEditModal = true; }, 300); },
+                
+                async uploadImage(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    this.isUploading = true;
+                    try {
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Date.now()}.${fileExt}`;
+                        const filePath = `img/${fileName}`;
+                        const { data, error } = await _supabase.storage.from('upload').upload(filePath, file);
+                        if (error) throw error;
+                        const { data: { publicUrl } } = _supabase.storage.from('upload').getPublicUrl(filePath);
+                        this.editingData.nota_url = publicUrl;
+                    } catch (error) {
+                        alert("Gagal mengunggah: " + error.message);
+                    } finally {
+                        this.isUploading = false;
+                    }
+                },
+
                 async updateData() {
-                    const { error } = await _supabase.from('kas_rt').update({ tanggal: this.editingData.tanggal, deskripsi: this.editingData.deskripsi, jumlah: this.editingData.jumlah, nota_url: this.editingData.nota_url }).eq('id', this.editingData.id);
+                    const { error } = await _supabase.from('kas_rt').update({ 
+                        tanggal: this.editingData.tanggal, 
+                        deskripsi: this.editingData.deskripsi, 
+                        jumlah: this.editingData.jumlah, 
+                        nota_url: this.editingData.nota_url 
+                    }).eq('id', this.editingData.id);
                     if (!error) { this.showEditModal = false; await this.fetchData(); }
                 },
                 async deleteData(id) {
@@ -228,10 +257,8 @@
                     }
                 },
 
-                // FITUR LOAD ON DEMAND UNTUK XLSX
                 async handleExport() {
                     this.isExporting = true;
-                    // Cek apakah library XLSX sudah ada di sistem
                     if (typeof XLSX === 'undefined') {
                         const script = document.createElement('script');
                         script.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
