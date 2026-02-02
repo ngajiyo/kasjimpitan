@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Kas RT 13</title>
-    <link rel="preconnect" href="https://pfichwnfffjzibusofao.supabase.co">
-
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -18,48 +16,23 @@
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         [x-cloak] { display: none !important; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
         .sticky-summary { position: sticky; top: 0.75rem; z-index: 40; }
         .img-thumbnail { width: 100%; max-height: 200px; object-fit: cover; border-radius: 1.5rem; cursor: pointer; }
-        
-        .card-interactive { 
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-            cursor: pointer; 
-            user-select: none;
-        }
-        .card-interactive:active { 
-            transform: scale(0.95); 
-            filter: brightness(0.9);
-        }
-
-        /* Animasi Notifikasi */
-        .notification-toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 200;
-        }
+        .card-interactive { transition: all 0.2s ease; cursor: pointer; user-select: none; }
+        .card-interactive:active { transform: scale(0.95); filter: brightness(0.9); }
+        .notification-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 200; }
     </style>
 </head>
 <body x-data="dashboard()">
 
-    <div x-show="showToast" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 -translate-y-4"
-         x-transition:enter-end="opacity-100 translate-y-0"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 translate-y-0"
-         x-transition:leave-end="opacity-0 -translate-y-4"
-         class="notification-toast bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl text-xs font-black uppercase tracking-widest border border-white/20"
-         x-cloak>
+    <div x-show="showToast" class="notification-toast bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl text-xs font-black uppercase tracking-widest border border-white/20" x-cloak x-transition>
         🔓 Mode Ubah Diaktifkan
     </div>
 
     <div class="max-w-md mx-auto p-4 pb-24">
         <header class="mb-5 flex justify-between items-end px-1">
             <div>
-                <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mb-0.5">Laporan Keuangan KAS JIMPITAN</p>
+                <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mb-0.5">Laporan Keuangan RT 13</p>
                 <h1 class="text-xl font-[900] text-slate-900 tracking-tight">DK. JASEM RT 13</h1>
             </div>
             <button @click="fetchData()" class="p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 active:scale-90 transition-transform">
@@ -67,24 +40,45 @@
             </button>
         </header>
 
-        <div class="sticky-summary">
-            <div :class="isAdmin ? 'bg-slate-900 border-slate-800' : 'bg-blue-700 border-blue-600'" class="rounded-[2rem] p-5 shadow-xl text-white overflow-hidden relative border transition-colors duration-500">
-                <div class="absolute -right-4 -top-4 w-20 h-20 bg-white/10 rounded-full"></div>
-                <div class="relative z-10 flex flex-col items-center">
-                    
-                    <div class="text-center card-interactive w-full py-2" @click="handleSecretClick()">
-                        <p class="text-[9px] opacity-70 uppercase font-black tracking-widest mb-1" x-text="isAdmin ? 'Mode Admin Aktif' : 'Saldo Akhir'"></p>
-                        <h2 class="text-2xl font-[900] tracking-tight mb-4" x-text="formatRupiah(totals.saldo)"></h2>
-                    </div>
+        <div class="sticky-summary space-y-2">
+            <div :class="isAdmin ? 'bg-slate-900' : 'bg-blue-700'" class="rounded-[2rem] p-5 shadow-xl text-white relative border border-white/10 transition-colors duration-500">
+                <div class="text-center card-interactive py-2" @click="handleSecretClick()">
+                    <p class="text-[9px] opacity-70 uppercase font-black tracking-widest mb-1">Total Saldo Seluruhnya</p>
+                    <h2 class="text-3xl font-[900] tracking-tight" x-text="formatRupiah(totals.saldo)"></h2>
+                </div>
+            </div>
 
-                    <div class="w-full grid grid-cols-2 border-t border-white/10 pt-3 mt-1">
-                        <div class="text-center border-r border-white/10 px-2 card-interactive py-1" @click="handleTrigger('total_masuk')">
-                            <p class="text-[8px] opacity-60 uppercase font-bold mb-0.5">Total Masuk</p>
-                            <p class="text-sm font-bold text-green-300" x-text="formatRupiah(totals.masuk)"></p>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <p class="text-[8px] text-slate-400 uppercase font-black tracking-wider mb-1">Tabungan</p>
+                        <p class="text-sm font-[900] text-slate-900" x-text="formatRupiah(totals.saldoTabungan)"></p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-50 space-y-1">
+                        <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-[9px]">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                            <span x-text="formatRupiah(totals.masukTabungan)"></span>
                         </div>
-                        <div class="text-center px-2 card-interactive py-1" @click="handleTrigger('total_keluar')">
-                            <p class="text-[8px] opacity-60 uppercase font-bold mb-0.5">Total Keluar</p>
-                            <p class="text-sm font-bold text-red-300" x-text="formatRupiah(totals.keluar)"></p>
+                        <div class="flex items-center gap-1.5 text-rose-600 font-bold text-[9px]">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                            <span x-text="formatRupiah(totals.keluarTabungan)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <p class="text-[8px] text-slate-400 uppercase font-black tracking-wider mb-1">Jimpitan</p>
+                        <p class="text-sm font-[900] text-slate-900" x-text="formatRupiah(totals.saldoJimpitan)"></p>
+                    </div>
+                    <div class="mt-3 pt-2 border-t border-slate-50 space-y-1">
+                        <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-[9px]">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                            <span x-text="formatRupiah(totals.masukJimpitan)"></span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-rose-600 font-bold text-[9px]">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
+                            <span x-text="formatRupiah(totals.keluarJimpitan)"></span>
                         </div>
                     </div>
                 </div>
@@ -92,57 +86,47 @@
         </div>
 
         <div class="mt-6 space-y-3">
-            <div class="flex gap-2 items-center">
-                <select x-model="combinedFilter" @change="applyCombinedFilter()" class="py-3.5 pl-4 pr-2 rounded-2xl bg-white border border-slate-200 text-[11px] font-black text-slate-700 outline-none appearance-none flex-1 shadow-sm">
-                    <option value="semua">Tampilkan Semua Riwayat</option>
-                    <option value="bulan">Laporan Bulan Ini</option>
+            <div class="flex gap-2">
+                <select x-model="combinedFilter" @change="applyCombinedFilter()" class="py-3.5 px-4 rounded-2xl bg-white border border-slate-200 text-[11px] font-black text-slate-700 outline-none flex-1 shadow-sm appearance-none">
+                    <option value="semua">Semua Riwayat</option>
+                    <option value="bulan">Bulan Ini</option>
                     <optgroup label="Arsip Bulanan">
                         <template x-for="opt in archiveOptions" :key="opt.id">
                             <option :value="opt.id" x-text="opt.label"></option>
                         </template>
                     </optgroup>
                 </select>
-                <div class="flex gap-1.5" x-show="activeFilter !== 'semua'" x-transition>
-                    <button @click="exportToExcel()" class="bg-emerald-600 text-white p-3.5 rounded-2xl shadow-lg active:scale-90 transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                    </button>
-                    <button @click="exportToPDF()" class="bg-rose-600 text-white p-3.5 rounded-2xl shadow-lg active:scale-90 transition-all">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 15h6" /></svg>
-                    </button>
+                <div class="flex gap-1.5">
+                    <button @click="exportToExcel()" class="bg-emerald-600 text-white p-3.5 rounded-2xl shadow-lg active:scale-90"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></button>
+                    <button @click="exportToPDF()" class="bg-rose-600 text-white p-3.5 rounded-2xl shadow-lg active:scale-90"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path d="M9 15h6"/></svg></button>
                 </div>
             </div>
+            <input type="text" x-model="searchQuery" @input="applySearch()" placeholder="Cari deskripsi..." class="w-full bg-white border border-slate-200 py-3.5 px-5 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500/20">
         </div>
 
-        <div class="mb-4 mt-4 px-1">
-            <div class="relative group">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                </span>
-                <input type="text" x-model="searchQuery" @input="applySearch()" placeholder="Cari transaksi..." class="w-full bg-white border border-slate-200 py-3.5 pl-11 pr-4 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm">
-            </div>
-        </div>
-
-        <div class="space-y-4">
-            <template x-for="(item, index) in displayTransactions" :key="item.id">
-                <div>
-                    <template x-if="index === 0 || new Date(item.tanggal).getMonth() !== new Date(displayTransactions[index-1].tanggal).getMonth() || new Date(item.tanggal).getFullYear() !== new Date(displayTransactions[index-1].tanggal).getFullYear()">
-                        <div class="pt-2 pb-2 px-1">
-                            <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]" x-text="monthNames[new Date(item.tanggal).getMonth()] + ' ' + new Date(item.tanggal).getFullYear()"></h3>
-                        </div>
-                    </template>
-
-                    <div @click="openDetailModal(item)" class="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm flex items-center gap-4 active:scale-[0.98] cursor-pointer mt-2">
-                        <div class="w-12 h-12 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border shrink-0 text-center">
-                            <span class="text-sm font-[800]" x-text="new Date(item.tanggal).getDate()"></span>
-                            <span class="text-[8px] uppercase font-black text-blue-600" x-text="monthNames[new Date(item.tanggal).getMonth()].substring(0,3)"></span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-bold text-slate-800 truncate" x-text="item.deskripsi"></h4>
-                            <p class="text-[9px] text-slate-400 font-bold uppercase" x-text="item.kategori"></p>
-                        </div>
-                        <div class="text-right shrink-0">
-                            <p :class="item.jenis === 'pemasukan' ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-[900]" x-text="(item.jenis === 'pemasukan' ? '+' : '-') + formatRupiah(item.jumlah).replace('Rp', '')"></p>
-                        </div>
+        <div class="mt-6 space-y-8">
+            <template x-for="group in groupedTransactions" :key="group.monthYear">
+                <div class="space-y-3">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2" x-text="group.monthYear"></h3>
+                    <div class="space-y-3">
+                        <template x-for="item in group.items" :key="item.id">
+                            <div @click="openDetailModal(item)" class="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm flex items-center gap-4 active:scale-[0.98] cursor-pointer">
+                                <div class="w-12 h-12 bg-slate-50 rounded-2xl flex flex-col items-center justify-center border shrink-0">
+                                    <span class="text-sm font-[800]" x-text="new Date(item.tanggal).getDate()"></span>
+                                    <span class="text-[8px] uppercase font-black text-blue-600" x-text="monthNames[new Date(item.tanggal).getMonth()].substring(0,3)"></span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="text-sm font-bold text-slate-800 truncate" x-text="item.deskripsi"></h4>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[8px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-black uppercase" x-text="item.rekening || 'jimpitan'"></span>
+                                        <span class="text-[9px] text-slate-300 font-bold uppercase" x-text="item.kategori"></span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p :class="item.jenis === 'pemasukan' ? 'text-emerald-600' : 'text-rose-600'" class="text-sm font-[900]" x-text="(item.jenis === 'pemasukan' ? '+' : '-') + formatRupiah(item.jumlah).replace('Rp', '')"></p>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </template>
@@ -150,26 +134,17 @@
     </div>
 
     <div x-show="showDetailModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak x-transition>
-        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-6 text-center overflow-y-auto max-h-[90vh]" @click.away="showDetailModal = false">
+        <div class="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-6 text-center" @click.away="showDetailModal = false">
             <template x-if="selectedItem.nota_url">
-                <img :src="selectedItem.nota_url" @click="showFullImage = true" class="img-thumbnail border border-slate-100 shadow-sm mb-4">
+                <img :src="selectedItem.nota_url" class="img-thumbnail mb-4 border border-slate-100 shadow-sm">
             </template>
-            <div :class="selectedItem.jenis === 'pemasukan' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'" class="inline-block p-4 rounded-full mb-3">
-                <svg x-show="selectedItem.jenis === 'pemasukan'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" /></svg>
-                <svg x-show="selectedItem.jenis === 'pengeluaran'" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M17 13l-5 5m0 0l-5-5m5 5V6" /></svg>
+            <h3 class="text-3xl font-[900] text-slate-900 mb-1" x-text="formatRupiah(selectedItem.jumlah)"></h3>
+            <p class="text-sm text-slate-600 font-bold mb-4" x-text="selectedItem.deskripsi"></p>
+            <div class="flex gap-2">
+                <button @click="showDetailModal = false" class="flex-1 py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Tutup</button>
+                <button x-show="isAdmin" @click="openEditFromDetail()" class="flex-1 py-4 text-xs font-black text-blue-600 bg-blue-50 rounded-2xl uppercase">Ubah</button>
             </div>
-            <h3 class="text-3xl font-[900] text-slate-900" x-text="formatRupiah(selectedItem.jumlah)"></h3>
-            <p class="mt-4 text-sm text-slate-600 font-bold" x-text="selectedItem.deskripsi"></p>
-            
-            <div class="mt-6 flex flex-col gap-3">
-                <div class="flex gap-2">
-                    <button @click="showDetailModal = false" class="flex-1 py-4 text-xs font-black text-slate-400 bg-slate-50 rounded-2xl uppercase">Tutup</button>
-                    <button x-show="isAdmin" @click="openEditFromDetail()" class="flex-1 py-4 text-xs font-black text-blue-600 bg-blue-50 border border-blue-100 rounded-2xl uppercase" x-transition>Ubah Data</button>
-                </div>
-                <button x-show="isAdmin" @click="deleteData(selectedItem.id)" class="w-full py-3.5 text-[9px] font-black text-rose-500 bg-rose-50 rounded-2xl uppercase" x-transition>Hapus Transaksi</button>
-                
-                <p x-show="!isAdmin" class="text-[8px] text-slate-300 font-bold uppercase mt-2 italic">Fitur ubah/hapus terkunci</p>
-            </div>
+            <button x-show="isAdmin" @click="deleteData(selectedItem.id)" class="w-full mt-2 py-3 text-[9px] font-black text-rose-500 uppercase tracking-widest">Hapus Transaksi</button>
         </div>
     </div>
 
@@ -177,41 +152,49 @@
         <div class="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh]" @click.away="showEditModal = false">
             <h3 class="text-xl font-black text-center mb-6 text-slate-800 uppercase">Ubah Data</h3>
             
-            <template x-if="editingData.nota_url">
-                <div class="relative mb-6">
-                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Bukti Nota</label>
-                    <div class="relative">
-                        <img :src="editingData.nota_url" class="w-full h-32 object-cover rounded-2xl border border-slate-100 shadow-sm">
-                        <button @click="editingData.nota_url = null" class="absolute -top-2 -right-2 bg-rose-600 text-white p-2 rounded-xl shadow-lg active:scale-90 transition-all border-2 border-white">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                    </div>
-                </div>
-            </template>
-
             <div class="space-y-4 text-left">
-                <div><label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Tanggal</label>
-                <input type="date" x-model="editingData.tanggal" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none ring-1 ring-slate-100"></div>
-                <div><label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Deskripsi</label>
-                <textarea x-model="editingData.deskripsi" rows="2" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold outline-none ring-1 ring-slate-100 resize-none"></textarea></div>
-                <div><label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Jumlah (Rp)</label>
-                <input type="number" x-model="editingData.jumlah" class="w-full p-4 bg-slate-50 rounded-2xl border-none font-black text-blue-600 outline-none ring-1 ring-slate-100 text-xl"></div>
+                <div x-show="editingData.nota_url" class="relative mb-4">
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Lampiran Saat Ini</label>
+                    <img :src="editingData.nota_url" class="w-full h-32 object-cover rounded-2xl border border-slate-100">
+                    <button @click="editingData.nota_url = null" class="absolute top-7 right-2 bg-rose-600 text-white p-1.5 rounded-full shadow-lg">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
                 <div>
-                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block" x-text="editingData.nota_url ? 'Ganti Bukti' : 'Upload Bukti'"></label>
-                    <input type="file" @change="uploadImage($event)" class="text-[10px] font-bold w-full">
-                    <p x-show="isUploading" class="text-blue-500 text-[10px] animate-pulse font-black mt-1 uppercase">Mengunggah...</p>
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Ganti Lampiran Foto</label>
+                    <input type="file" @change="uploadImage($event)" class="w-full text-[10px] bg-slate-50 p-3 rounded-xl border border-dashed border-slate-200" accept="image/*">
+                </div>
+
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Tanggal Transaksi</label>
+                    <input type="date" x-model="editingData.tanggal" class="w-full p-3.5 bg-slate-50 rounded-2xl border-none font-bold outline-none ring-1 ring-slate-100">
+                </div>
+
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Rekening</label>
+                    <select x-model="editingData.rekening" class="w-full p-3.5 bg-slate-50 rounded-2xl border-none font-bold outline-none ring-1 ring-slate-100">
+                        <option value="jimpitan">jimpitan</option>
+                        <option value="tabungan">tabungan</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Deskripsi</label>
+                    <input type="text" x-model="editingData.deskripsi" class="w-full p-3.5 bg-slate-50 rounded-2xl font-bold outline-none ring-1 ring-slate-100 border-none">
+                </div>
+                
+                <div>
+                    <label class="text-[9px] font-black text-slate-400 uppercase ml-2 mb-1 block">Jumlah (Rp)</label>
+                    <input type="number" x-model="editingData.jumlah" class="w-full p-3.5 bg-slate-50 rounded-2xl font-black text-blue-600 outline-none ring-1 ring-slate-100 border-none text-xl">
                 </div>
             </div>
 
             <div class="flex gap-3 mt-8">
                 <button @click="showEditModal = false" class="flex-1 py-4 font-black text-xs text-slate-400 uppercase">Batal</button>
-                <button @click="updateData()" :disabled="isUploading" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase shadow-lg">Simpan</button>
+                <button @click="updateData()" :disabled="isUploading" class="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase shadow-lg disabled:opacity-50" x-text="isUploading ? 'Uploading...' : 'Simpan'"></button>
             </div>
         </div>
-    </div>
-
-    <div x-show="showFullImage" x-transition.opacity class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4" x-cloak @click="showFullImage = false">
-        <img :src="selectedItem.nota_url" class="max-w-full max-h-full object-contain rounded-lg">
     </div>
 
     <script>
@@ -221,36 +204,33 @@
 
         function dashboard() {
             return {
-                allData: [], filteredTransactions: [], displayTransactions: [], searchQuery: '', 
-                archiveOptions: [], activeFilter: 'semua', combinedFilter: 'semua', 
-                totals: { saldo: 0, masuk: 0, keluar: 0 }, 
-                showDetailModal: false, showEditModal: false, isUploading: false,
-                showFullImage: false, selectedItem: {}, editingData: {},
-                
-                // Variabel Fitur Rahasia
+                allData: [], 
+                filteredTransactions: [], 
+                groupedTransactions: [], 
+                searchQuery: '', 
+                archiveOptions: [], 
+                combinedFilter: 'semua', 
+                totals: { saldo: 0, saldoTabungan: 0, masukTabungan: 0, keluarTabungan: 0, saldoJimpitan: 0, masukJimpitan: 0, keluarJimpitan: 0 }, 
+                showDetailModal: false, 
+                showEditModal: false, 
+                isUploading: false, 
+                selectedItem: {}, 
+                editingData: {},
                 isAdmin: false, 
-                clickCount: 0,
+                clickCount: 0, 
                 showToast: false,
-
                 monthNames: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
 
                 async init() { await this.fetchData(); },
                 
-                // Fungsi Rahasia (Trigger 4x Klik)
                 handleSecretClick() {
                     this.clickCount++;
                     if (this.clickCount >= 4) {
-                        this.isAdmin = !this.isAdmin; // Toggle mode admin
-                        this.clickCount = 0; // Reset counter
-                        
-                        if (this.isAdmin) {
-                            this.showToast = true;
-                            setTimeout(() => { this.showToast = false; }, 3000);
-                        }
+                        this.isAdmin = !this.isAdmin;
+                        this.clickCount = 0;
+                        if (this.isAdmin) { this.showToast = true; setTimeout(() => this.showToast = false, 3000); }
                     }
                 },
-
-                handleTrigger(type) { console.log('Ringkasan diklik:', type); },
 
                 async fetchData() {
                     const { data } = await _supabase.from('kas_rt').select('*').order('tanggal', { ascending: false });
@@ -258,115 +238,205 @@
                     this.generateArchiveOptions();
                     this.applyCombinedFilter(); 
                 },
+
                 generateArchiveOptions() {
                     const groups = new Set();
-                    this.allData.forEach(i => { const d = new Date(i.tanggal); groups.add(`${d.getMonth()}-${d.getFullYear()}`); });
+                    this.allData.forEach(i => { 
+                        const d = new Date(i.tanggal); 
+                        groups.add(`${d.getMonth()}-${d.getFullYear()}`); 
+                    });
                     this.archiveOptions = Array.from(groups).map(g => {
                         const [m, y] = g.split('-');
                         return { id: g, label: `${this.monthNames[m]} ${y}`, month: m, year: y };
                     }).sort((a,b) => b.year - a.year || b.month - a.month);
                 },
+
                 applyCombinedFilter() {
                     if (this.combinedFilter === 'semua') {
-                        this.activeFilter = 'semua';
                         this.filteredTransactions = [...this.allData];
                     } else if (this.combinedFilter === 'bulan') {
-                        this.activeFilter = 'bulan';
                         const now = new Date();
                         this.filteredTransactions = this.allData.filter(i => { 
-                            const d = new Date(i.tanggal); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
+                            const d = new Date(i.tanggal); 
+                            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); 
                         });
                     } else {
-                        this.activeFilter = 'archive';
                         const [m, y] = this.combinedFilter.split('-');
                         this.filteredTransactions = this.allData.filter(i => { 
-                            const d = new Date(i.tanggal); return d.getMonth() == m && d.getFullYear() == y; 
+                            const d = new Date(i.tanggal); 
+                            return d.getMonth() == m && d.getFullYear() == y; 
                         });
                     }
                     this.calculate(); 
                     this.applySearch();
                 },
+
                 applySearch() {
                     const q = this.searchQuery.toLowerCase();
-                    this.displayTransactions = this.filteredTransactions.filter(i => 
-                        i.deskripsi.toLowerCase().includes(q) || i.kategori.toLowerCase().includes(q)
-                    );
+                    const searched = this.filteredTransactions.filter(i => i.deskripsi.toLowerCase().includes(q));
+                    this.groupTransactions(searched);
                 },
+
+                groupTransactions(data) {
+                    const groups = {};
+                    data.forEach(item => {
+                        const date = new Date(item.tanggal);
+                        const key = `${this.monthNames[date.getMonth()]} ${date.getFullYear()}`;
+                        if (!groups[key]) groups[key] = [];
+                        groups[key].push(item);
+                    });
+                    this.groupedTransactions = Object.keys(groups).map(key => ({
+                        monthYear: key,
+                        items: groups[key]
+                    }));
+                },
+
                 calculate() {
-                    const m = this.filteredTransactions.filter(t => t.jenis === 'pemasukan').reduce((a, b) => a + Number(b.jumlah), 0);
-                    const k = this.filteredTransactions.filter(t => t.jenis === 'pengeluaran').reduce((a, b) => a + Number(b.jumlah), 0);
-                    this.totals = { masuk: m, keluar: k, saldo: m - k };
+                    let t = { saldo: 0, saldoTabungan: 0, masukTabungan: 0, keluarTabungan: 0, saldoJimpitan: 0, masukJimpitan: 0, keluarJimpitan: 0 };
+                    this.allData.forEach(item => {
+                        const jml = Number(item.jumlah);
+                        const isMasuk = item.jenis === 'pemasukan';
+                        const rek = (item.rekening || '').toLowerCase().trim();
+                        if (rek === 'tabungan') {
+                            if (isMasuk) t.masukTabungan += jml; else t.keluarTabungan += jml;
+                        } else {
+                            if (isMasuk) t.masukJimpitan += jml; else t.keluarJimpitan += jml;
+                        }
+                    });
+                    t.saldoTabungan = t.masukTabungan - t.keluarTabungan;
+                    t.saldoJimpitan = t.masukJimpitan - t.keluarJimpitan;
+                    t.saldo = t.saldoTabungan + t.saldoJimpitan;
+                    this.totals = t;
                 },
+
                 openDetailModal(item) { this.selectedItem = item; this.showDetailModal = true; },
-                openEditFromDetail() { 
-                    this.editingData = { ...this.selectedItem }; 
-                    this.showDetailModal = false; 
-                    setTimeout(() => { this.showEditModal = true; }, 300); 
-                },
+                openEditFromDetail() { this.editingData = { ...this.selectedItem }; this.showDetailModal = false; setTimeout(() => this.showEditModal = true, 300); },
+
                 async uploadImage(event) {
-                    const file = event.target.files[0]; if (!file) return;
+                    const file = event.target.files[0];
+                    if (!file) return;
                     this.isUploading = true;
-                    const fileName = `${Date.now()}.${file.name.split('.').pop()}`;
-                    const { data, error } = await _supabase.storage.from('upload').upload(`img/${fileName}`, file);
-                    if (!error) {
-                        const { data: { publicUrl } } = _supabase.storage.from('upload').getPublicUrl(`img/${fileName}`);
-                        this.editingData.nota_url = publicUrl;
+                    
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}.${fileExt}`;
+                    const filePath = `nota/${fileName}`;
+
+                    const { error: uploadError } = await _supabase.storage
+                        .from('upload')
+                        .upload(filePath, file);
+
+                    if (uploadError) {
+                        alert('Gagal upload gambar');
+                        this.isUploading = false;
+                        return;
                     }
+
+                    const { data: { publicUrl } } = _supabase.storage
+                        .from('upload')
+                        .getPublicUrl(filePath);
+
+                    this.editingData.nota_url = publicUrl;
                     this.isUploading = false;
                 },
+
                 async updateData() {
                     const { error } = await _supabase.from('kas_rt').update({ 
-                        tanggal: this.editingData.tanggal, deskripsi: this.editingData.deskripsi, 
-                        jumlah: this.editingData.jumlah, nota_url: this.editingData.nota_url 
+                        tanggal: this.editingData.tanggal,
+                        deskripsi: this.editingData.deskripsi, 
+                        jumlah: this.editingData.jumlah, 
+                        rekening: this.editingData.rekening,
+                        nota_url: this.editingData.nota_url 
                     }).eq('id', this.editingData.id);
-                    if (!error) { this.showEditModal = false; await this.fetchData(); }
+                    
+                    if (!error) { 
+                        this.showEditModal = false; 
+                        await this.fetchData(); 
+                    } else {
+                        alert('Gagal memperbarui data');
+                    }
                 },
+
                 async deleteData(id) {
-                    if (confirm('Hapus transaksi?')) {
+                    if (confirm('Hapus transaksi ini?')) {
                         const { error } = await _supabase.from('kas_rt').delete().eq('id', id);
                         if (!error) { this.showDetailModal = false; await this.fetchData(); }
                     }
                 },
+
+                formatRupiah(v) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0); },
+
                 getPeriodeLabel() {
-                    if (this.combinedFilter === 'semua') return "Semua Riwayat";
-                    if (this.combinedFilter === 'bulan') return this.formatMonthYear(new Date());
-                    const opt = this.archiveOptions.find(o => o.id === this.combinedFilter);
-                    return opt ? opt.label : "Laporan Bulanan";
+                    if (this.combinedFilter === 'semua') return 'Semua Riwayat';
+                    if (this.combinedFilter === 'bulan') return this.monthNames[new Date().getMonth()] + ' ' + new Date().getFullYear();
+                    const [m, y] = this.combinedFilter.split('-');
+                    return `${this.monthNames[m]} ${y}`;
                 },
+
                 exportToPDF() {
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF();
                     const labelPeriode = this.getPeriodeLabel();
-                    doc.setFontSize(14); doc.text("LAPORAN KEUANGAN KAS RT 13", 14, 15);
-                    doc.setFontSize(10); doc.text("Periode: " + labelPeriode, 14, 22);
-                    const sortedData = [...this.displayTransactions].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
-                    const tableData = sortedData.map(i => [
-                        new Date(i.tanggal).toLocaleDateString('id-ID'), 
-                        i.deskripsi, i.kategori, i.jenis.charAt(0).toUpperCase() + i.jenis.slice(1).toLowerCase(), 
-                        this.formatRupiah(i.jumlah)
-                    ]);
-                    doc.autoTable({
-                        startY: 30, head: [['Tanggal', 'Keterangan', 'Kategori', 'Jenis', 'Jumlah']], body: tableData,
-                        foot: [['', '', '', 'Total Masuk', this.formatRupiah(this.totals.masuk)], ['', '', '', 'Total Keluar', this.formatRupiah(this.totals.keluar)]],
-                        columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 'auto' }, 2: { cellWidth: 25 }, 3: { cellWidth: 25 }, 4: { cellWidth: 45, halign: 'right' } },
-                        styles: { fontSize: 8 }, footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }, theme: 'grid'
+                    
+                    doc.setFontSize(14);
+                    doc.text("LAPORAN KEUANGAN KAS RT 13", 14, 15);
+                    doc.setFontSize(10);
+                    doc.text("Periode: " + labelPeriode, 14, 22);
+
+                    let m = 0, k = 0;
+                    const tableData = this.filteredTransactions.map(i => {
+                        const jml = Number(i.jumlah);
+                        if (i.jenis === 'pemasukan') m += jml; else k += jml;
+                        return [
+                            new Date(i.tanggal).toLocaleDateString('id-ID'), 
+                            i.deskripsi, 
+                            i.rekening || 'jimpitan', 
+                            i.jenis === 'pemasukan' ? 'Masuk' : 'Keluar', 
+                            this.formatRupiah(jml).replace('Rp', '').trim()
+                        ];
                     });
-                    doc.save(`Laporan_RT13_${labelPeriode.replace(' ','_')}.pdf`);
+
+                    doc.autoTable({
+                        head: [['Tanggal', 'Keterangan', 'Rek', 'Jenis', 'Jumlah']],
+                        body: tableData,
+                        startY: 30,
+                        theme: 'grid',
+                        styles: { fontSize: 8 },
+                        headStyles: { fillColor: [51, 65, 85] },
+                        columnStyles: { 0: { cellWidth: 25 }, 1: { cellWidth: 'auto' }, 4: { cellWidth: 35, halign: 'right' } },
+                        foot: [
+                            ['', '', '', 'TOTAL MASUK', this.formatRupiah(m).replace('Rp', '').trim()],
+                            ['', '', '', 'TOTAL KELUAR', this.formatRupiah(k).replace('Rp', '').trim()]
+                        ],
+                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold' }
+                    });
+
+                    doc.save(`Laporan_RT13_${labelPeriode.replace(/ /g, '_')}.pdf`);
                 },
+
                 exportToExcel() {
                     const labelPeriode = this.getPeriodeLabel();
-                    const rows = [["LAPORAN KEUANGAN KAS RT 13"], ["Periode: " + labelPeriode], [], ['Tanggal', 'Keterangan', 'Kategori', 'Jenis', 'Jumlah']];
-                    const sortedData = [...this.displayTransactions].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
-                    sortedData.forEach(i => { rows.push([new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, i.kategori, i.jenis.charAt(0).toUpperCase() + i.jenis.slice(1).toLowerCase(), Number(i.jumlah)]); });
-                    rows.push([], ['', '', '', 'Total Masuk', Number(this.totals.masuk)], ['', '', '', 'Total Keluar', Number(this.totals.keluar)]);
+                    const rows = [
+                        ["LAPORAN KEUANGAN KAS RT 13"],
+                        ["Periode: " + labelPeriode],
+                        [],
+                        ['Tanggal', 'Keterangan', 'Rekening', 'Jenis', 'Jumlah']
+                    ];
+
+                    let m = 0, k = 0;
+                    this.filteredTransactions.forEach(i => {
+                        const jml = Number(i.jumlah);
+                        if (i.jenis === 'pemasukan') m += jml; else k += jml;
+                        rows.push([new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, i.rekening || 'jimpitan', i.jenis === 'pemasukan' ? 'Masuk' : 'Keluar', jml]);
+                    });
+
+                    rows.push([], ['', '', '', 'TOTAL MASUK', m], ['', '', '', 'TOTAL KELUAR', k]);
+                    
                     const ws = XLSX.utils.aoa_to_sheet(rows);
-                    ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 10 }, { wch: 12 }];
+                    ws['!cols'] = [{ wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 12 }, { wch: 18 }];
                     const wb = XLSX.utils.book_new();
                     XLSX.utils.book_append_sheet(wb, ws, "Laporan");
-                    XLSX.writeFile(wb, `Laporan_KAS_RT13_${labelPeriode.replace(' ', '_')}.xlsx`);
-                },
-                formatMonthYear(s) { const d=new Date(s); return `${this.monthNames[d.getMonth()]} ${d.getFullYear()}`; },
-                formatRupiah(v) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0); }
+                    XLSX.writeFile(wb, `Laporan_RT13_${labelPeriode.replace(/ /g, '_')}.xlsx`);
+                }
             }
         }
     </script>
