@@ -37,7 +37,7 @@
         </button>
     </div>
 
-    <div class="max-w-md mx-auto p-4 pb-24">
+    <div class="max-w-md md:max-w-4xl mx-auto p-4 pb-24">
         <header class="mb-5 flex justify-between items-end px-1">
             <div>
                 <p class="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em] mb-0.5">Laporan Keuangan RT 13</p>
@@ -105,8 +105,9 @@
                     </optgroup>
                 </select>
                 <div class="flex gap-1.5">
-                    <button @click="exportToExcel()" class="bg-emerald-600 text-white p-3.5 rounded-2xl shadow-lg active:scale-90"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></button>
-                    <button @click="exportToPDF()" class="bg-rose-600 text-white p-3.5 rounded-2xl shadow-lg active:scale-90"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path d="M9 15h6"/></svg></button>
+                    <button @click="exportToPDF()" class="bg-rose-600 text-white p-3.5 rounded-2xl shadow-lg active:scale-90">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /><path d="M9 15h6"/></svg>
+                    </button>
                 </div>
             </div>
             <input type="text" x-model="searchQuery" @input="applySearch()" placeholder="Cari deskripsi..." class="w-full bg-white border border-slate-200 py-3.5 px-5 rounded-2xl text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-blue-500/20">
@@ -361,43 +362,92 @@
                     const { jsPDF } = window.jspdf;
                     const doc = new jsPDF();
                     const labelPeriode = this.getPeriodeLabel();
-                    doc.setFontSize(14);
+                    
+                    doc.setFontSize(16);
+                    doc.setFont('helvetica', 'bold');
                     doc.text("LAPORAN KEUANGAN KAS RT 13", 14, 15);
                     doc.setFontSize(10);
                     doc.text("Periode: " + labelPeriode, 14, 22);
-                    let m = 0, k = 0;
-                    const tableData = this.filteredTransactions.map(i => {
+
+                    // Sorting data berdasarkan tanggal (Ascending: Kecil ke Besar)
+                    const sortedData = [...this.filteredTransactions].sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+
+                    // --- REKENING JIMPITAN ---
+                    const dataJimpitan = sortedData.filter(i => (i.rekening || '').toLowerCase().trim() !== 'tabungan');
+                    let mJ = 0, kJ = 0;
+                    const rowsJimpitan = dataJimpitan.map(i => {
                         const jml = Number(i.jumlah);
-                        if (i.jenis === 'pemasukan') m += jml; else k += jml;
-                        return [new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, i.rekening || 'jimpitan', i.jenis === 'pemasukan' ? 'Masuk' : 'Keluar', this.formatRupiah(jml).replace('Rp', '').trim()];
+                        const labelJenis = i.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
+                        if (i.jenis === 'pemasukan') mJ += jml; else kJ += jml;
+                        return [new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, labelJenis, this.formatRupiah(jml)];
                     });
+
+                    doc.setFontSize(11);
+                    doc.text("REKENING JIMPITAN", 14, 32);
                     doc.autoTable({
-                        head: [['Tanggal', 'Keterangan', 'Rek', 'Jenis', 'Jumlah']],
-                        body: tableData,
-                        startY: 30,
+                        head: [['Tanggal', 'Keterangan', 'Jenis', 'Jumlah']],
+                        body: rowsJimpitan,
+                        startY: 35,
                         theme: 'grid',
                         styles: { fontSize: 8 },
+                        columnStyles: { 3: { halign: 'right' } },
                         headStyles: { fillColor: [51, 65, 85] },
-                        foot: [['', '', '', 'TOTAL MASUK', this.formatRupiah(m).replace('Rp', '').trim()], ['', '', '', 'TOTAL KELUAR', this.formatRupiah(k).replace('Rp', '').trim()]],
-                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold' }
+                        foot: [
+                            ['', '', 'TOTAL MASUK', this.formatRupiah(mJ)],
+                            ['', '', 'TOTAL KELUAR', this.formatRupiah(kJ)]
+                        ],
+                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' }
                     });
-                    doc.save(`Laporan_RT13_${labelPeriode.replace(/ /g, '_')}.pdf`);
-                },
 
-                exportToExcel() {
-                    const labelPeriode = this.getPeriodeLabel();
-                    const rows = [["LAPORAN KEUANGAN KAS RT 13"], ["Periode: " + labelPeriode], [], ['Tanggal', 'Keterangan', 'Rekening', 'Jenis', 'Jumlah']];
-                    let m = 0, k = 0;
-                    this.filteredTransactions.forEach(i => {
+                    // --- REKENING TABUNGAN ---
+                    const dataTabungan = sortedData.filter(i => (i.rekening || '').toLowerCase().trim() === 'tabungan');
+                    let mT = 0, kT = 0;
+                    const rowsTabungan = dataTabungan.map(i => {
                         const jml = Number(i.jumlah);
-                        if (i.jenis === 'pemasukan') m += jml; else k += jml;
-                        rows.push([new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, i.rekening || 'jimpitan', i.jenis === 'pemasukan' ? 'Masuk' : 'Keluar', jml]);
+                        const labelJenis = i.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
+                        if (i.jenis === 'pemasukan') mT += jml; else kT += jml;
+                        return [new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, labelJenis, this.formatRupiah(jml)];
                     });
-                    rows.push([], ['', '', '', 'TOTAL MASUK', m], ['', '', '', 'TOTAL KELUAR', k]);
-                    const ws = XLSX.utils.aoa_to_sheet(rows);
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "Laporan");
-                    XLSX.writeFile(wb, `Laporan_RT13_${labelPeriode.replace(/ /g, '_')}.xlsx`);
+
+                    let finalY = doc.lastAutoTable.finalY || 35;
+                    doc.setFontSize(11);
+                    doc.text("REKENING TABUNGAN", 14, finalY + 15);
+                    doc.autoTable({
+                        head: [['Tanggal', 'Keterangan', 'Jenis', 'Jumlah']],
+                        body: rowsTabungan,
+                        startY: finalY + 18,
+                        theme: 'grid',
+                        styles: { fontSize: 8 },
+                        columnStyles: { 3: { halign: 'right' } },
+                        headStyles: { fillColor: [29, 78, 216] },
+                        foot: [
+                            ['', '', 'TOTAL MASUK', this.formatRupiah(mT)],
+                            ['', '', 'TOTAL KELUAR', this.formatRupiah(kT)]
+                        ],
+                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' }
+                    });
+
+                    // --- TABEL RINGKASAN SALDO (Hanya jika "Semua Riwayat") ---
+                    if (this.combinedFilter === 'semua') {
+                        let finalY2 = doc.lastAutoTable.finalY || finalY + 18;
+                        doc.setFontSize(11);
+                        doc.text("RINGKASAN SALDO AKHIR", 14, finalY2 + 15);
+                        doc.autoTable({
+                            head: [['Nama Rekening', 'Saldo Akhir']],
+                            body: [
+                                ['Saldo Jimpitan', this.formatRupiah(this.totals.saldoJimpitan)],
+                                ['Saldo Tabungan', this.formatRupiah(this.totals.saldoTabungan)],
+                                ['TOTAL KAS KESELURUHAN', this.formatRupiah(this.totals.saldo)]
+                            ],
+                            startY: finalY2 + 18,
+                            theme: 'grid',
+                            styles: { fontSize: 10, fontStyle: 'bold' },
+                            columnStyles: { 1: { halign: 'right' } },
+                            headStyles: { fillColor: [15, 23, 42] }
+                        });
+                    }
+
+                    doc.save(`Laporan_RT13_${labelPeriode.replace(/ /g, '_')}.pdf`);
                 }
             }
         }
