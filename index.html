@@ -351,6 +351,15 @@
 
                 formatRupiah(v) { return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(v || 0); },
 
+                // Format tanggal khusus untuk tabel PDF: dd-MMM-yy (contoh: 23-Agu-26)
+                formatTanggalPDF(tgl) {
+                    const d = new Date(tgl);
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const mmm = this.monthNames[d.getMonth()].substring(0, 3);
+                    const yy = String(d.getFullYear()).slice(-2);
+                    return `${dd}-${mmm}-${yy}`;
+                },
+
                 getPeriodeLabel() {
                     if (this.combinedFilter === 'semua') return 'Semua Riwayat';
                     if (this.combinedFilter === 'bulan') return this.monthNames[new Date().getMonth()] + ' ' + new Date().getFullYear();
@@ -377,9 +386,11 @@
                     let mJ = 0, kJ = 0;
                     const rowsJimpitan = dataJimpitan.map(i => {
                         const jml = Number(i.jumlah);
-                        const labelJenis = i.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
-                        if (i.jenis === 'pemasukan') mJ += jml; else kJ += jml;
-                        return [new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, labelJenis, this.formatRupiah(jml)];
+                        const isMasuk = i.jenis === 'pemasukan';
+                        const labelJenis = isMasuk ? 'Pemasukan' : 'Pengeluaran';
+                        if (isMasuk) mJ += jml; else kJ += jml;
+                        const panah = isMasuk ? '\u25B2' : '\u25BC';
+                        return [this.formatTanggalPDF(i.tanggal), i.deskripsi, labelJenis, `${panah}  ${this.formatRupiah(jml)}`];
                     });
 
                     doc.setFontSize(11);
@@ -396,7 +407,13 @@
                             ['', '', 'TOTAL MASUK', this.formatRupiah(mJ)],
                             ['', '', 'TOTAL KELUAR', this.formatRupiah(kJ)]
                         ],
-                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' }
+                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' },
+                        didParseCell: (data) => {
+                            if (data.section === 'body' && data.column.index === 3) {
+                                const isMasuk = data.row.cells[2].text[0] === 'Pemasukan';
+                                data.cell.styles.textColor = isMasuk ? [5, 150, 105] : [225, 29, 72];
+                            }
+                        }
                     });
 
                     // --- REKENING TABUNGAN ---
@@ -404,9 +421,11 @@
                     let mT = 0, kT = 0;
                     const rowsTabungan = dataTabungan.map(i => {
                         const jml = Number(i.jumlah);
-                        const labelJenis = i.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
-                        if (i.jenis === 'pemasukan') mT += jml; else kT += jml;
-                        return [new Date(i.tanggal).toLocaleDateString('id-ID'), i.deskripsi, labelJenis, this.formatRupiah(jml)];
+                        const isMasuk = i.jenis === 'pemasukan';
+                        const labelJenis = isMasuk ? 'Pemasukan' : 'Pengeluaran';
+                        if (isMasuk) mT += jml; else kT += jml;
+                        const panah = isMasuk ? '\u25B2' : '\u25BC';
+                        return [this.formatTanggalPDF(i.tanggal), i.deskripsi, labelJenis, `${panah}  ${this.formatRupiah(jml)}`];
                     });
 
                     let finalY = doc.lastAutoTable.finalY || 35;
@@ -424,7 +443,13 @@
                             ['', '', 'TOTAL MASUK', this.formatRupiah(mT)],
                             ['', '', 'TOTAL KELUAR', this.formatRupiah(kT)]
                         ],
-                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' }
+                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' },
+                        didParseCell: (data) => {
+                            if (data.section === 'body' && data.column.index === 3) {
+                                const isMasuk = data.row.cells[2].text[0] === 'Pemasukan';
+                                data.cell.styles.textColor = isMasuk ? [5, 150, 105] : [225, 29, 72];
+                            }
+                        }
                     });
 
                     // --- TABEL RINGKASAN SALDO (Hanya jika "Semua Riwayat") ---
