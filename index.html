@@ -386,11 +386,9 @@
                     let mJ = 0, kJ = 0;
                     const rowsJimpitan = dataJimpitan.map(i => {
                         const jml = Number(i.jumlah);
-                        const isMasuk = i.jenis === 'pemasukan';
-                        const labelJenis = isMasuk ? 'Pemasukan' : 'Pengeluaran';
-                        if (isMasuk) mJ += jml; else kJ += jml;
-                        const panah = isMasuk ? '\u25B2' : '\u25BC';
-                        return [this.formatTanggalPDF(i.tanggal), i.deskripsi, labelJenis, `${panah}  ${this.formatRupiah(jml)}`];
+                        const labelJenis = i.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
+                        if (i.jenis === 'pemasukan') mJ += jml; else kJ += jml;
+                        return [this.formatTanggalPDF(i.tanggal), i.deskripsi, labelJenis, this.formatRupiah(jml)];
                     });
 
                     doc.setFontSize(11);
@@ -407,13 +405,7 @@
                             ['', '', 'TOTAL MASUK', this.formatRupiah(mJ)],
                             ['', '', 'TOTAL KELUAR', this.formatRupiah(kJ)]
                         ],
-                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' },
-                        didParseCell: (data) => {
-                            if (data.section === 'body' && data.column.index === 3) {
-                                const isMasuk = data.row.cells[2].text[0] === 'Pemasukan';
-                                data.cell.styles.textColor = isMasuk ? [5, 150, 105] : [225, 29, 72];
-                            }
-                        }
+                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' }
                     });
 
                     // --- REKENING TABUNGAN ---
@@ -421,11 +413,9 @@
                     let mT = 0, kT = 0;
                     const rowsTabungan = dataTabungan.map(i => {
                         const jml = Number(i.jumlah);
-                        const isMasuk = i.jenis === 'pemasukan';
-                        const labelJenis = isMasuk ? 'Pemasukan' : 'Pengeluaran';
-                        if (isMasuk) mT += jml; else kT += jml;
-                        const panah = isMasuk ? '\u25B2' : '\u25BC';
-                        return [this.formatTanggalPDF(i.tanggal), i.deskripsi, labelJenis, `${panah}  ${this.formatRupiah(jml)}`];
+                        const labelJenis = i.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
+                        if (i.jenis === 'pemasukan') mT += jml; else kT += jml;
+                        return [this.formatTanggalPDF(i.tanggal), i.deskripsi, labelJenis, this.formatRupiah(jml)];
                     });
 
                     let finalY = doc.lastAutoTable.finalY || 35;
@@ -443,13 +433,7 @@
                             ['', '', 'TOTAL MASUK', this.formatRupiah(mT)],
                             ['', '', 'TOTAL KELUAR', this.formatRupiah(kT)]
                         ],
-                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' },
-                        didParseCell: (data) => {
-                            if (data.section === 'body' && data.column.index === 3) {
-                                const isMasuk = data.row.cells[2].text[0] === 'Pemasukan';
-                                data.cell.styles.textColor = isMasuk ? [5, 150, 105] : [225, 29, 72];
-                            }
-                        }
+                        footStyles: { fillColor: [241, 245, 249], textColor: [0,0,0], fontStyle: 'bold', halign: 'right' }
                     });
 
                     // --- TABEL RINGKASAN SALDO (Hanya jika "Semua Riwayat") ---
